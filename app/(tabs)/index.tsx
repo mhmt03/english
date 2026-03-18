@@ -1,98 +1,215 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, ScrollView, Text, TouchableOpacity } from 'react-native';
+import Checkbox from 'expo-checkbox';
+import CustomRadio from '@/components/CustomRadio';
+import CustomButton from '@/components/CustomButton';
+import CustomTextInput from '@/components/CustomTextInput';
+import { getWords, toggleListemdeMi } from '@/database/db';
+import { WordType } from '@/types';
+import { useFocusEffect } from 'expo-router';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+export default function IngTrScreen() {
+  const [order, setOrder] = useState<string>('sirayla');
+  const [filterType, setFilterType] = useState<string>('tumu');
+  const [showExample, setShowExample] = useState<boolean>(false);
+  const [words, setWords] = useState<WordType[]>([]);
+  const [currentIndex, setCurrentIndex] = useState<number>(0);
 
-export default function HomeScreen() {
+  // Çevirilerin gösterilip gösterilmemesi (Açık/Kapalı)
+  const [isRevealed, setIsRevealed] = useState<boolean>(false);
+
+  const fetchWords = async () => {
+    const data = await getWords(
+      order as 'alfabetik' | 'sirayla' | 'karisik',
+      filterType === 'listemdekiler'
+    );
+    setWords(data);
+    setCurrentIndex(0);
+    setIsRevealed(false);
+  };
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchWords();
+    }, [order, filterType])
+  );
+
+  const currentWord = words[currentIndex] || null;
+
+  const handleNextWord = () => {
+    if (words.length === 0) return;
+    setIsRevealed(false);
+    if (currentIndex < words.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    } else {
+      setCurrentIndex(0);
+    }
+  };
+
+  const handlePrevWord = () => {
+    if (words.length === 0) return;
+    setIsRevealed(false);
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+    } else {
+      setCurrentIndex(words.length - 1);
+    }
+  };
+
+  const handleAddToList = async () => {
+    if (!currentWord || !currentWord.id) return;
+    await toggleListemdeMi(currentWord.id, true);
+    const updatedWords = [...words];
+    updatedWords[currentIndex].listemdeMi = true;
+    setWords(updatedWords);
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
+      {/* 1. Üst Kısım: Filtreleme Radyo Butonları */}
+      <View style={styles.filterSection}>
+        <CustomRadio
+          options={[
+            { label: 'Tümü', value: 'tumu' },
+            { label: 'Listemdekiler', value: 'listemdekiler' }
+          ]}
+          selectedValue={filterType}
+          onSelect={(val) => setFilterType(val)}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+        <CustomRadio
+          options={[
+            { label: 'Sırayla', value: 'sirayla' },
+            { label: 'Alfabetik', value: 'alfabetik' },
+            { label: 'Karışık', value: 'karisik' }
+          ]}
+          selectedValue={order}
+          onSelect={(val) => setOrder(val)}
+          orientation="row"
+        />
+      </View>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      {/* 2. Orta Kısım: Checkbox */}
+      <View style={styles.checkboxContainer}>
+        <Checkbox
+          value={showExample}
+          onValueChange={setShowExample}
+          color={showExample ? '#2980b9' : undefined}
+        />
+        <Text style={styles.checkboxLabel}>Örnek Cümleyi de Göster</Text>
+      </View>
+
+      {/* 3. Ana Kısım: Kelime Gösterim Kutuları */}
+      <View style={styles.wordsContainer}>
+        {/* Tıklanabilir İngilizce Kelime Alanı */}
+        <TouchableOpacity activeOpacity={0.7} onPress={() => setIsRevealed(!isRevealed)}>
+          <View pointerEvents="none">
+            <CustomTextInput
+              label="İngilizce Kelime (Çeviriyi görmek için dokunun)"
+              value={currentWord ? currentWord.ingilizceKelime : ''}
+              editable={false}
+            />
+          </View>
+        </TouchableOpacity>
+
+        {/* Checkbox işaretliyse gösterilecek olan İngilizce Cümle */}
+        {showExample && (
+          <CustomTextInput
+            label="İngilizce Örnek Cümle"
+            value={currentWord ? currentWord.ingilizceOrnekCumle : ''}
+            editable={false}
+            multiline={true}
+          />
+        )}
+
+        {/* Gizli Tutulan (Tıklanan) Bölümler */}
+        {isRevealed && (
+          <>
+            <CustomTextInput
+              label="Türkçe Karşılığı"
+              value={currentWord ? currentWord.turkceKarsiligi : ''}
+              editable={false}
+            />
+            {showExample && (
+              <CustomTextInput
+                label="Örnek Cümle Türkçesi"
+                value={currentWord ? currentWord.ornekCumleTurkcesi : ''}
+                editable={false}
+                multiline={true}
+              />
+            )}
+          </>
+        )}
+      </View>
+
+      {/* 4. Alt Kısım: Aksiyon Butonları */}
+      <View style={styles.buttonContainer}>
+        <View style={styles.navigationButtons}>
+          {order === 'sirayla' && (
+            <View style={{ flex: 1, marginRight: 5 }}>
+              <CustomButton title="Geri" variant="secondary" onPress={handlePrevWord} />
+            </View>
+          )}
+          <View style={{ flex: 1, marginLeft: order === 'sirayla' ? 5 : 0 }}>
+            <CustomButton title="Değiştir" onPress={handleNextWord} />
+          </View>
+        </View>
+
+        {/* Bilmediklerime Ekle Butonu */}
+        {currentWord && (
+          <CustomButton
+            title={currentWord.listemdeMi ? "Listede Ekli" : "Bilmediklerime Ekle"}
+            variant="danger"
+            onPress={handleAddToList}
+            disabled={currentWord.listemdeMi} // Ekliyse basılamasın
+          />
+        )}
+
+        {words.length === 0 && (
+          <Text style={styles.noDataText}>Hiç kelime bulunamadı. Lütfen Excel'den yükleme yapın veya Kelimeler sekmesinden ekleyin.</Text>
+        )}
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: '#ecf0f1',
+  },
+  filterSection: {
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 10,
+    elevation: 2,
+  },
+  checkboxContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    marginBottom: 15,
+    paddingHorizontal: 8,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  checkboxLabel: {
+    marginLeft: 8,
+    fontSize: 16,
+    color: '#2c3e50',
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  wordsContainer: {
+    marginBottom: 15,
   },
+  buttonContainer: {
+    marginTop: 10,
+    gap: 10,
+  },
+  navigationButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  noDataText: {
+    marginTop: 20,
+    color: '#e74c3c',
+    textAlign: 'center',
+  }
 });

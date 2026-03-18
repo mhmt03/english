@@ -1,8 +1,8 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { Ionicons } from '@expo/vector-icons';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -12,24 +12,52 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: '#2980b9', // Seçili sekmenin rengi (Mavi)
+        tabBarInactiveTintColor: 'gray', // Seçili olmayan sekmeler
         headerShown: false,
         tabBarButton: HapticTab,
+        tabBarStyle: {
+          paddingBottom: 5,
+        }
       }}>
+
+      {/* 1. Sekme: Ing - Tr (Ana Sayfa -> index) */}
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: 'Ing-Tr',
+          tabBarIcon: ({ color }) => <Ionicons name="language" size={24} color={color} />,
         }}
       />
+
+      {/* 2. Sekme: Tr - Ing */}
       <Tabs.Screen
-        name="explore"
+        name="tr-ing"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: 'Tr-Ing',
+          tabBarIcon: ({ color }) => <Ionicons name="swap-horizontal" size={24} color={color} />,
         }}
       />
+
+      {/* 3. Sekme: Kelime Düzenleme / Ekleme Sayfası */}
+      <Tabs.Screen
+        name="kelime-ekle"
+        options={{
+          title: 'Kelimeler',
+          tabBarIcon: ({ color }) => <Ionicons name="list" size={24} color={color} />,
+        }}
+      />
+
+      {/* 4. Sekme: Excel İçe/Dışa Aktarma Sayfası */}
+      <Tabs.Screen
+        name="excel"
+        options={{
+          title: 'Excel',
+          tabBarIcon: ({ color }) => <Ionicons name="document-text" size={24} color={color} />,
+        }}
+      />
+
+      {/* İhtiyacımız olmayan explore sekmesini siliyoruz veya gizliyoruz, dosyası olsa bile Navigation'da çıkmaz */}
     </Tabs>
   );
 }
