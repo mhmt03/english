@@ -62,6 +62,14 @@ export default function TrIngScreen() {
         setWords(updatedWords);
     };
 
+    const handleRemoveFromList = async () => {
+        if (!currentWord || !currentWord.id) return;
+        await toggleListemdeMi(currentWord.id, false);
+        const updatedWords = [...words];
+        updatedWords[currentIndex].listemdeMi = false;
+        setWords(updatedWords);
+    };
+
     return (
         <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
             {/* 1. Üst Kısım: Filtreleme Radyo Butonları */}
@@ -154,16 +162,24 @@ export default function TrIngScreen() {
 
                 {/* Bilmediklerime Ekle Butonu */}
                 {currentWord && (
-                    <CustomButton
-                        title={currentWord.listemdeMi ? "Listede Ekli" : "Bilmediklerime Ekle"}
-                        variant="danger"
-                        onPress={handleAddToList}
-                        disabled={currentWord.listemdeMi} // Ekliyse basılamasın
-                    />
+                    currentWord.listemdeMi ? (
+                        <CustomButton
+                            title="Bilmediklerimden Çıkar"
+                            variant="primary"
+                            style={{ backgroundColor: '#8e44ad' }}
+                            onPress={handleRemoveFromList}
+                        />
+                    ) : (
+                        <CustomButton
+                            title="Bilmediklerime Ekle"
+                            variant="danger"
+                            onPress={handleAddToList}
+                        />
+                    )
                 )}
 
                 {words.length === 0 && (
-                    <Text style={styles.noDataText}>Hiç kelime bulunamadı. Lütfen Excel'den yükleme yapın veya Kelimeler sekmesinden ekleyin.</Text>
+                     <Text style={styles.noDataText}> {"Hiç kelime bulunamadı... Lütfen Excel'den yükleme yapın veya Kelimeler sekmesinden ekleyin."} </Text>
                 )}
             </View>
         </ScrollView>

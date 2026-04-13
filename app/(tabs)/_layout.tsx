@@ -57,7 +57,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* İhtiyacımız olmayan explore sekmesini siliyoruz veya gizliyoruz, dosyası olsa bile Navigation'da çıkmaz */}
+      {/* Explore sekmesi tamamen kaldırıldı */}
     </Tabs>
   );
 }

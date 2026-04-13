@@ -14,8 +14,6 @@ export default function IngTrScreen() {
   const [showExample, setShowExample] = useState<boolean>(false);
   const [words, setWords] = useState<WordType[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
-
-  // Çevirilerin gösterilip gösterilmemesi (Açık/Kapalı)
   const [isRevealed, setIsRevealed] = useState<boolean>(false);
 
   const fetchWords = async () => {
@@ -46,7 +44,7 @@ export default function IngTrScreen() {
     }
   };
 
-  const handlePrevWord = () => {
+  const handlePreviousWord = () => {
     if (words.length === 0) return;
     setIsRevealed(false);
     if (currentIndex > 0) {
@@ -61,6 +59,14 @@ export default function IngTrScreen() {
     await toggleListemdeMi(currentWord.id, true);
     const updatedWords = [...words];
     updatedWords[currentIndex].listemdeMi = true;
+    setWords(updatedWords);
+  };
+
+  const handleRemoveFromList = async () => {
+    if (!currentWord || !currentWord.id) return;
+    await toggleListemdeMi(currentWord.id, false);
+    const updatedWords = [...words];
+    updatedWords[currentIndex].listemdeMi = false;
     setWords(updatedWords);
   };
 
@@ -141,33 +147,45 @@ export default function IngTrScreen() {
         )}
       </View>
 
-      {/* 4. Alt Kısım: Aksiyon Butonları */}
-      <View style={styles.buttonContainer}>
-        <View style={styles.navigationButtons}>
-          {order === 'sirayla' && (
-            <View style={{ flex: 1, marginRight: 5 }}>
-              <CustomButton title="Geri" variant="secondary" onPress={handlePrevWord} />
-            </View>
-          )}
-          <View style={{ flex: 1, marginLeft: order === 'sirayla' ? 5 : 0 }}>
-            <CustomButton title="Değiştir" onPress={handleNextWord} />
-          </View>
-        </View>
+      {/* 4. Navigasyon Butonları */}
+      <View style={styles.navigationButtons}>
+        <CustomButton
+          title="← Önceki"
+          variant="primary"
+          onPress={handlePreviousWord}
+          style={{ flex: 1, marginRight: 5 }}
+        />
+        <CustomButton
+          title="Sonraki →"
+          variant="primary"
+          onPress={handleNextWord}
+          style={{ flex: 1, marginLeft: 5 }}
+        />
+      </View>
 
-        {/* Bilmediklerime Ekle Butonu */}
-        {currentWord && (
+      {/* 5. Listeye Ekle / Çıkar Butonu */}
+      {currentWord && (
+        currentWord.listemdeMi ? (
           <CustomButton
-            title={currentWord.listemdeMi ? "Listede Ekli" : "Bilmediklerime Ekle"}
+            title="Listeden Çıkar"
+            variant="primary"
+            style={{ backgroundColor: '#8e44ad' }}
+            onPress={handleRemoveFromList}
+          />
+        ) : (
+          <CustomButton
+            title="Listeme Ekle"
             variant="danger"
             onPress={handleAddToList}
-            disabled={currentWord.listemdeMi} // Ekliyse basılamasın
           />
-        )}
+        )
+      )}
 
-        {words.length === 0 && (
-          <Text style={styles.noDataText}>Hiç kelime bulunamadı. Lütfen Excel'den yükleme yapın veya Kelimeler sekmesinden ekleyin.</Text>
-        )}
-      </View>
+      {words.length === 0 && (
+        <Text style={styles.noDataText}>
+          Hiç kelime bulunamadı. Lütfen Excelden yükleme yapın veya Kelimeler sekmesinden ekleyin.
+        </Text>
+      )}
     </ScrollView>
   );
 }
@@ -199,17 +217,14 @@ const styles = StyleSheet.create({
   wordsContainer: {
     marginBottom: 15,
   },
-  buttonContainer: {
-    marginTop: 10,
-    gap: 10,
-  },
   navigationButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginBottom: 10,
   },
   noDataText: {
     marginTop: 20,
     color: '#e74c3c',
     textAlign: 'center',
-  }
+  },
 });

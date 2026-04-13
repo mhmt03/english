@@ -1,7 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, FlatList, StyleSheet, Alert, Modal, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Alert, Modal, ScrollView, TouchableOpacity, Platform } from 'react-native';
+import { useEffect } from 'react';
+import Checkbox from 'expo-checkbox';
 import { useFocusEffect } from 'expo-router';
-import { getWords, insertWord, updateWord, deleteWord } from '@/database/db';
+import { getWords, insertWord, updateWord, deleteWord, toggleListemdeMi } from '@/database/db';
 import { WordType } from '@/types';
 import CustomButton from '@/components/CustomButton';
 import CustomTextInput from '@/components/CustomTextInput';
@@ -9,6 +11,9 @@ import { Ionicons } from '@expo/vector-icons';
 
 export default function KelimeEkleScreen() {
     const [words, setWords] = useState<WordType[]>([]);
+    const [filteredWords, setFilteredWords] = useState<WordType[]>([]);
+    const [searchText, setSearchText] = useState('');
+    const [orderBy, setOrderBy] = useState<'sirayla' | 'alfabetik'>('sirayla');
     // Modal görünürlük state'i
     const [modalVisible, setModalVisible] = useState(false);
     // Düzenleme mi yoksa Ekleme mi yapıyoruz (id varsa düzenleme)
@@ -22,14 +27,49 @@ export default function KelimeEkleScreen() {
 
     // Veritabanından kelimeleri çek (Normal sırayla)
     const fetchWords = async () => {
-        const data = await getWords('sirayla');
+        const data = await getWords(orderBy);
         setWords(data);
+        // Arama varsa filtrele
+        if (searchText.trim() !== '') {
+            const search = searchText.toLowerCase();
+            setFilteredWords(
+                data.filter(w =>
+                    w.ingilizceKelime.toLowerCase().includes(search) ||
+                    w.turkceKarsiligi.toLowerCase().includes(search)
+                )
+            );
+        } else {
+            setFilteredWords(data);
+        }
     };
+
+    // Web için scrollbar'ı kalınlaştıran CSS ekle
+    useEffect(() => {
+        if (Platform.OS === 'web') {
+            const style = document.createElement('style');
+            style.innerHTML = `
+                ::-webkit-scrollbar {
+                    width: 28px !important;
+                    background: #e0e0e0;
+                }
+                ::-webkit-scrollbar-thumb {
+                    background: #b0b0b0;
+                    border-radius: 10px;
+                    min-height: 40px;
+                }
+                ::-webkit-scrollbar-thumb:hover {
+                    background: #888;
+                }
+            `;
+            document.head.appendChild(style);
+            return () => { document.head.removeChild(style); };
+        }
+    }, []);
 
     useFocusEffect(
         useCallback(() => {
             fetchWords();
-        }, [])
+        }, [orderBy])
     );
 
     // Sayfa başındaki "Yeni Kelime Ekle"ye basıldığında Formu temizler
@@ -97,8 +137,22 @@ export default function KelimeEkleScreen() {
     };
 
     // FlatList satır tasarımı (Her bir kelime kutusu)
+    const handleRemoveFromListem = async (id: number | undefined) => {
+        if (!id) return;
+        await toggleListemdeMi(id, false);
+        fetchWords();
+    };
+
+    const handleToggleListemdeMi = async (id: number | undefined, value: boolean) => {
+        if (!id) return;
+        await toggleListemdeMi(id, value);
+        setFilteredWords(prev => prev.map(w => w.id === id ? { ...w, listemdeMi: value } : w));
+        setWords(prev => prev.map(w => w.id === id ? { ...w, listemdeMi: value } : w));
+    };
+
     const renderItem = ({ item }: { item: WordType }) => (
         <View style={styles.listItem}>
+            <Text style={styles.wordId}>{item.id}</Text>
             <View style={styles.listTextContainer}>
                 <Text style={styles.wordTitle}>{item.ingilizceKelime}</Text>
                 <Text style={styles.wordSubtitle}>{item.turkceKarsiligi}</Text>
@@ -110,24 +164,58 @@ export default function KelimeEkleScreen() {
                 <TouchableOpacity style={[styles.iconButton, { backgroundColor: '#e74c3c' }]} onPress={() => handleDeleteWord(item.id)}>
                     <Ionicons name="trash" size={20} color="white" />
                 </TouchableOpacity>
+                <Checkbox
+                    value={item.listemdeMi}
+                    onValueChange={val => handleToggleListemdeMi(item.id, val)}
+                    color={item.listemdeMi ? '#27ae60' : undefined}
+                    style={{ marginLeft: 8, marginRight: 2 }}
+                />
             </View>
         </View>
     );
 
     return (
         <View style={styles.container}>
-            {/* Üst Kısım: Yeni Kelime Ekle Butonu */}
+            {/* Üst Kısım: Sıralama, Arama ve Yeni Kelime Ekle Butonları */}
             <View style={styles.header}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                    <CustomButton
+                        title={orderBy === 'sirayla' ? 'Veritabanı Sırası' : 'Alfabetik'}
+                        variant="primary"
+                        onPress={() => {
+                            setOrderBy(orderBy === 'sirayla' ? 'alfabetik' : 'sirayla');
+                        }}
+                        style={{ marginRight: 8 }}
+                    />
+                    <CustomTextInput
+                        label="Ara"
+                        value={searchText}
+                        onChangeText={text => {
+                            setSearchText(text);
+                            if (text.trim() === '') {
+                                setFilteredWords(words);
+                            } else {
+                                setFilteredWords(
+                                    words.filter(w => w.ingilizceKelime.toLowerCase().startsWith(text.toLowerCase()))
+                                );
+                            }
+                        }}
+                        placeholder="Kelime ara..."
+                        style={{ flex: 1 }}
+                    />
+                </View>
                 <CustomButton title="Yeni Kelime Ekle" variant="success" onPress={handleOpenAddModal} />
             </View>
 
             {/* Ana Liste */}
             <FlatList
-                data={words}
+                data={filteredWords}
                 keyExtractor={(item, index) => item.id ? item.id.toString() : index.toString()}
                 renderItem={renderItem}
                 contentContainerStyle={{ padding: 16 }}
                 ListEmptyComponent={<Text style={{ textAlign: 'center', marginTop: 20 }}>Henüz eklenmiş kelime yok.</Text>}
+                showsVerticalScrollIndicator={true}
+                style={Platform.OS === 'web' ? { scrollbarWidth: 'thick' } : {}}
             />
 
             {/* Kayıt / Düzenleme Ekranı (Modal) */}
@@ -193,6 +281,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
     },
+    wordId: {
+        width: 32,
+        fontWeight: 'bold',
+        color: '#8e44ad',
+        fontSize: 16,
+        textAlign: 'center',
+        marginRight: 8,
+    },
     listTextContainer: {
         flex: 1,
     },
@@ -209,6 +305,7 @@ const styles = StyleSheet.create({
     listButtonsContainer: {
         flexDirection: 'row',
         gap: 10,
+        alignItems: 'center',
     },
     iconButton: {
         padding: 10,

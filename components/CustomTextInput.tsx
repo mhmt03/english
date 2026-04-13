@@ -23,11 +23,13 @@ const CustomTextInput: React.FC<CustomTextInputProps> = ({ label, style, ...prop
                 {...props}
                 style={[
                     styles.input,
-                    // Eğer "editable=false" gönderilmişse (sadece okunabilir) arka planı farklı yap
                     props.editable === false ? styles.readonlyInput : null,
                     style
                 ]}
-                placeholderTextColor="#7f8c8d" // Yer tutucu metin rengi
+                placeholderTextColor="#7f8c8d"
+                multiline={true}
+                numberOfLines={props.numberOfLines || 1}
+                textAlignVertical="top"
             />
         </View>
     );
@@ -47,15 +49,18 @@ const styles = StyleSheet.create({
         fontWeight: '600', // Yarı-kalın font
     },
     input: {
-        borderWidth: 1, // Kenarlık
-        borderColor: '#bdc3c7', // Açık gri kenarlık rengi
-        borderRadius: 8, // Yuvarlatılmış köşeler
-        paddingHorizontal: 12, // İç sağ/sol boşluk
-        paddingVertical: 10, // İç üst/alt boşluk
+        borderWidth: 1,
+        borderColor: '#bdc3c7',
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
         fontSize: 16,
-        color: '#2c3e50', // Girdi rengi
-        backgroundColor: '#fff', // İç arkaplan rengi beyaz
-        minHeight: 48, // Ekranlarda parmak hassasiyeti için en az belli bir yükseklik
+        color: '#2c3e50',
+        backgroundColor: '#fff',
+        minHeight: 48,
+        // height: undefined, // Sabit yükseklik yok, otomatik büyüme
+        flexShrink: 1,
+        flexGrow: 1,
     },
     readonlyInput: {
         backgroundColor: '#f5f6fa', // Düzenlenemez ise arka planı çok açık gri yapıyoruz
